@@ -4,6 +4,7 @@ import idu.sba.backend.domain.user.entity.UserStatus;
 import idu.sba.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ public class WithdrawnUserCleanupScheduler {
 
     // 알림 정리(04:30)·정기결제(00:00) 배치와 시간이 겹치지 않게 05:00
     @Scheduled(cron = "0 0 5 * * *", zone = "Asia/Seoul")
+    @SchedulerLock(name = "purgeWithdrawnUsers", lockAtMostFor = "PT10M", lockAtLeastFor = "PT30S")
     @Transactional
     public void purgeWithdrawn() {
         long deleted = userRepository.deleteByStatusAndUpdatedAtBefore(

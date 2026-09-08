@@ -53,6 +53,10 @@ dependencies {
 
     //Redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // ShedLock - 다중 인스턴스에서 스케줄러 중복 실행 방지 (분산 락, Redis 기반)
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:6.6.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-redis-spring:6.6.0'
 }
 
 tasks.named('test') {

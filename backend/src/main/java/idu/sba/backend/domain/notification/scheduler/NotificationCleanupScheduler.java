@@ -3,6 +3,7 @@ package idu.sba.backend.domain.notification.scheduler;
 import idu.sba.backend.domain.notification.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ public class NotificationCleanupScheduler {
 
     // @Scheduled 호출은 프록시 경유라 @Transactional 적용됨(@Modifying 벌크 삭제에 필요)
     @Scheduled(cron = "0 30 4 * * *") // 매일 04:30 (정기결제 배치와 시간 겹치지 않게)
+    @SchedulerLock(name = "purgeExpiredNotifications", lockAtMostFor = "PT10M", lockAtLeastFor = "PT30S")
     @Transactional
     public void purgeExpired() {
         int deleted = notificationRepository.deleteByCreatedAtBefore(
