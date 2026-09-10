@@ -19,7 +19,9 @@ import idu.sba.backend.global.ai.AiProvider;
 import idu.sba.backend.global.ai.AiReviewClient;
 import idu.sba.backend.global.ai.AiReviewResult;
 import idu.sba.backend.global.exception.BusinessException;
+import idu.sba.backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,16 +76,23 @@ public class GuestReviewService {
         // "guest:count:토큰" 이름표로 카운터 생성
         String countKey = "guest:count:" + guestToken;
 
-        // increment: 값을 1 올리고 "올린 뒤 현재값"을 반환.
-        Long count = redisTemplate.opsForValue().increment(countKey);
+        // 카운터는 Redis에 의존한다(단일 인스턴스 = SPOF). Redis 장애 시 횟수를 셀 수 없으므로,
+        // 무제한 호출로 비용이 새는 것을 막기 위해 fail-closed로 체험만 차단한다(503). 나머지 서비스는 계속 동작.
+        // 근본 해결은 Redis Sentinel/replica로 HA 구성 — 확장 여지로 남겨둔다.
+        long current;
+        try {
+            // increment: 값을 1 올리고 "올린 뒤 현재값"을 반환.
+            Long count = redisTemplate.opsForValue().increment(countKey);
+            // increment는 이론상 null 가능 → 방어. null이면 1로 취급.
+            current = (count == null) ? 1L : count;
 
-        // increment는 이론상 null 가능 → 방어. null이면 1로 취급.
-        long current = (count == null) ? 1L : count;
-
-        // 첫 리뷰(값 1)일 때만 24시간 수명 설정. 이후엔 갱신하지 않으므로
-        // 첫 리뷰 시점부터 정확히 24시간 뒤에 카운터가 만료되고 3회가 리셋된다.
-        if (current == 1L) {
-            redisTemplate.expire(countKey, TRIAL_WINDOW);
+            // 첫 리뷰(값 1)일 때만 24시간 수명 설정. 이후엔 갱신하지 않으므로
+            // 첫 리뷰 시점부터 정확히 24시간 뒤에 카운터가 만료되고 3회가 리셋된다.
+            if (current == 1L) {
+                redisTemplate.expire(countKey, TRIAL_WINDOW);
+            }
+        } catch (DataAccessException e) {
+            throw new BusinessException(ErrorCode.GUEST_TRIAL_UNAVAILABLE);
         }
 
         // 3회 초과(4번째부터)예외처리 Controller가 이걸 403으로 바꿈
@@ -116,7 +125,11 @@ public class GuestReviewService {
         // 모든 모델 실패 — 방금 올린 체험 횟수를 롤백하고 마지막 에러(AI_MODEL_CALL_FAILED)를 재던져 502로 통일 응답
         // (예전처럼 500 RuntimeException으로 뭉개지 않음)
         if (result == null) {
-            redisTemplate.opsForValue().decrement(countKey);
+            // 카운터 롤백. Redis가 방금 죽었더라도 원래 에러(lastError)를 가리지 않도록 무시.
+            try {
+                redisTemplate.opsForValue().decrement(countKey);
+            } catch (DataAccessException ignore) {
+            }
             throw lastError;
         }
 

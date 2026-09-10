@@ -86,6 +86,7 @@ public enum ErrorCode {
     CREDIT_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS,"오늘의 리뷰 요청 한도를 모두 사용했습니다."), //429
     MODEL_NOT_ALLOWED_FOR_PLAN(HttpStatus.FORBIDDEN,"현재 요금제에서 선택할 수 없는 모델입니다."),
     AI_MODEL_CALL_FAILED(HttpStatus.BAD_GATEWAY,"AI 모델 호출에 실패했습니다."),
+    GUEST_TRIAL_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE,"일시적으로 체험을 이용할 수 없습니다. 잠시 후 다시 시도해주세요."), // 503 (Redis 장애 시 fail-closed)
 
     //PR 리뷰(API-024/025)
     PR_NOT_FOUND(HttpStatus.NOT_FOUND,"존재하지 않는 PR입니다."),
