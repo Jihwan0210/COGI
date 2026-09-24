@@ -18,6 +18,7 @@ public class BillingScheduler {
     private final PlanRepository planRepository;
     private final BillingProcessor billingProcessor; // 별도 빈 주입 → 프록시 경유해야 @Transactional 적용됨
 
+    // 매일 자정 만료 구독을 일괄 청구. 실패 격리 트레이드오프는 BillingProcessor.processOne 참고.
     @Scheduled(cron = "0 0 0 * * *") // 매일 자정
     public void runBilling() {
         Long freeId = planRepository.findByName("FREE").orElseThrow().getId();

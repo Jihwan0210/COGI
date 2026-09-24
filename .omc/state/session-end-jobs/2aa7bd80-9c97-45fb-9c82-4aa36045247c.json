@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "jobId": "3b3349d8-bdd7-41ca-a22b-ad1c2af82574",
+  "sessionId": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+  "scopeKey": "682a27ca532509ccdbf9957832f622a35f486f0a67fe0405a5d44855e5fdf45b",
+  "revision": 2,
+  "createdAt": "2026-08-08T09:01:22.391Z",
+  "updatedAt": "2026-08-08T17:01:14.243Z",
+  "producerGraceExpiresAt": "2026-08-08T09:01:52.394Z",
+  "bestEffortDeadlineAt": "2026-08-08T09:02:43.394Z",
+  "producers": {
+    "core": {
+      "state": "sealed",
+      "intentKey": "4cc5ff8ba58b6452da92c615781a9fda99e12eeda1ea38d574542c6ae3477876",
+      "payloadDigest": "4cc5ff8ba58b6452da92c615781a9fda99e12eeda1ea38d574542c6ae3477876",
+      "sealedAt": "2026-08-08T17:01:14.243Z",
+      "sealedBy": "foreground"
+    },
+    "wiki": {
+      "state": "no-op",
+      "sealedAt": "2026-08-08T09:01:22.391Z",
+      "sealedBy": "wiki-producer"
+    }
+  },
+  "actions": {
+    "foreground-cleanup": {
+      "class": "required",
+      "phase": "deferred-required",
+      "status": "completed",
+      "attempts": 0,
+      "idempotencyKey": "febf6dba2f2536433960a07f7cedce72e946b43ced0896570df80f017b8914d2",
+      "payload": {
+        "transcriptPath": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+        "cwd": "C:\\yjh\\SecondProject\\COGI",
+        "reason": "other",
+        "input": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "transcript_path": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+          "cwd": "C:\\yjh\\SecondProject\\COGI",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "ended_at": "2026-08-08T09:01:22.632Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {},
+        "foregroundResult": {
+          "removedTransientFiles": 0,
+          "completedAt": "2026-08-08T17:01:14.239Z"
+        }
+      },
+      "budgetMs": 9000,
+      "completedAt": "2026-08-08T17:01:14.243Z",
+      "lastOutcomeCode": "completed"
+    },
+    "wiki-capture": {
+      "class": "required",
+      "phase": "deferred-required",
+      "status": "completed",
+      "attempts": 0,
+      "idempotencyKey": "1719cd1ef5b51e0269b78c4cb8c9308c9c1f7b82fd1c067fc034c060f23863f5",
+      "payload": {},
+      "budgetMs": 9000,
+      "completedAt": "2026-08-08T09:01:22.391Z"
+    },
+    "team-cleanup": {
+      "class": "required",
+      "phase": "deferred-required",
+      "status": "pending",
+      "attempts": 0,
+      "idempotencyKey": "cee6ac31df545408e1e822247ac249b3f8182a98a5fe8e448ae3b251e55bdee1",
+      "payload": {
+        "transcriptPath": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+        "cwd": "C:\\yjh\\SecondProject\\COGI",
+        "reason": "other",
+        "input": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "transcript_path": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+          "cwd": "C:\\yjh\\SecondProject\\COGI",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "ended_at": "2026-08-08T09:01:22.632Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {}
+      },
+      "budgetMs": 9000
+    },
+    "python-cleanup": {
+      "class": "required",
+      "phase": "deferred-required",
+      "status": "pending",
+      "attempts": 0,
+      "idempotencyKey": "1f1370c4ac056606059d517e2f106b602d8cbcb04587b3fcc5f3b9f89e649cd0",
+      "payload": {
+        "transcriptPath": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+        "cwd": "C:\\yjh\\SecondProject\\COGI",
+        "reason": "other",
+        "input": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "transcript_path": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+          "cwd": "C:\\yjh\\SecondProject\\COGI",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "ended_at": "2026-08-08T09:01:22.632Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {}
+      },
+      "budgetMs": 9000
+    },
+    "reply-cleanup": {
+      "class": "required",
+      "phase": "deferred-required",
+      "status": "pending",
+      "attempts": 0,
+      "idempotencyKey": "0b3a8b47c28b26d56aca004d4f572b96c118f16819c0d35162418816f9a5420a",
+      "payload": {
+        "transcriptPath": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+        "cwd": "C:\\yjh\\SecondProject\\COGI",
+        "reason": "other",
+        "input": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "transcript_path": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+          "cwd": "C:\\yjh\\SecondProject\\COGI",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "ended_at": "2026-08-08T09:01:22.632Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {}
+      },
+      "budgetMs": 9000
+    },
+    "callback": {
+      "class": "best-effort",
+      "phase": "deferred-best-effort",
+      "status": "pending",
+      "attempts": 0,
+      "idempotencyKey": "d068ede2655bf89e0c0950e087d0603d7dcf45538e94f20a654d08c6f4841895",
+      "payload": {
+        "transcriptPath": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+        "cwd": "C:\\yjh\\SecondProject\\COGI",
+        "reason": "other",
+        "input": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "transcript_path": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+          "cwd": "C:\\yjh\\SecondProject\\COGI",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "ended_at": "2026-08-08T09:01:22.632Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {}
+      },
+      "budgetMs": 2000
+    },
+    "notification": {
+      "class": "best-effort",
+      "phase": "deferred-best-effort",
+      "status": "pending",
+      "attempts": 0,
+      "idempotencyKey": "89c0438ff63097ce04beb60efb87292ff68a7af350a0ee331f3de9dbf42d62fc",
+      "payload": {
+        "transcriptPath": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+        "cwd": "C:\\yjh\\SecondProject\\COGI",
+        "reason": "other",
+        "input": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "transcript_path": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+          "cwd": "C:\\yjh\\SecondProject\\COGI",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "ended_at": "2026-08-08T09:01:22.632Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {}
+      },
+      "budgetMs": 2000
+    },
+    "openclaw": {
+      "class": "best-effort",
+      "phase": "deferred-best-effort",
+      "status": "pending",
+      "attempts": 0,
+      "idempotencyKey": "31fe8f6e1cf204e27006de511df257326fdd98655122ca437013e8779ffc735b",
+      "payload": {
+        "transcriptPath": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+        "cwd": "C:\\yjh\\SecondProject\\COGI",
+        "reason": "other",
+        "input": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "transcript_path": "C:\\Users\\mijis\\.claude\\projects\\C--yjh-SecondProject-COGI\\2aa7bd80-9c97-45fb-9c82-4aa36045247c.jsonl",
+          "cwd": "C:\\yjh\\SecondProject\\COGI",
+          "hook_event_name": "SessionEnd",
+          "reason": "other"
+        },
+        "metrics": {
+          "session_id": "2aa7bd80-9c97-45fb-9c82-4aa36045247c",
+          "ended_at": "2026-08-08T09:01:22.632Z",
+          "reason": "other",
+          "agents_spawned": 0,
+          "agents_completed": 0,
+          "modes_used": []
+        },
+        "initialTeamNames": [],
+        "openClawEnabled": false,
+        "openClawRouting": {}
+      },
+      "budgetMs": 2000
+    }
+  },
+  "owner": null,
+  "phase": "ready"
+}

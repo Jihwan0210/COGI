@@ -102,6 +102,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
 
+    /**
+     * [트레이드오프] 결제 없이 구독만 생성되는 상태 방지
+     * 상황 : 구독 행을 먼저 만들고 결제를 따로 처리하면, 결제가 실패해도 구독만 덩그러니 남을 수 있다.
+     * 선택 : 구독 저장과 최초 빌링키 즉시 청구를 같은 @Transactional 안에 묶는다.
+     *        confirmBilling이 실패하면 예외가 올라가 save(sub)까지 전부 롤백된다(원자성).
+     * 결과 : 결제 성공 없이는 구독이 생성되지 않는다. 청구 메일 실패는 삼켜서 구독 확정을 막지 않는다.
+     */
     @Override
     @Transactional
     public Long createSubscription(Long userId, SubscriptionCreateDTO dto) {

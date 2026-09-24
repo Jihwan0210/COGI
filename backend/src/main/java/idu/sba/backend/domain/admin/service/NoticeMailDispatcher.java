@@ -10,7 +10,12 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-// 전체 공지 메일을 백그라운드에서 발송하고 결과를 Notice에 기록한다.
+/**
+ * [트레이드오프] 전체 공지 메일이 응답을 붙잡는 문제
+ * 상황 : 전체 공지 메일을 요청 스레드에서 동기 발송하면, 수신자 수만큼 응답이 지연된다.
+ * 선택 : @Async(mailExecutor)로 백그라운드에 넘기고, 건별 실패는 개별 try/catch로 로깅한 뒤 성공/실패 수를 Notice에 기록한다.
+ * 결과 : 메일 발송이 응답을 지연시키지 않고, 한 건 실패가 전체 발송을 멈추지 않는다.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
