@@ -24,6 +24,12 @@ public class AdminUsageServiceImpl implements AdminUsageService{
     private final UserRepository userRepository;
 
 
+    /**
+     * [트레이드오프] 관리자 사용량 통계의 N+1
+     * 상황 : 사용량 로그를 DTO로 변환할 때 로그마다 닉네임을 조회하면, 회원 수만큼 쿼리가 따라붙는다(N+1).
+     * 선택 : 로그에서 userId를 distinct로 모아 findAllById(IN 조회) 한 번으로 닉네임 맵을 채우고, 변환은 맵에서 꺼낸다.
+     * 결과 : 회원 수와 무관하게 닉네임 조회가 1회로 고정된다.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<AdminAiUsageResponseDTO> getAiUsage(LocalDate from, LocalDate to) {

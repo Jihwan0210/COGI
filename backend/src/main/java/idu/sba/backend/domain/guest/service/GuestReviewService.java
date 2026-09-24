@@ -71,6 +71,14 @@ public class GuestReviewService {
     //Admin관리자 창에서 Ai사용량을 표기해야
     private final AiUsageLogRepository aiUsageLogRepository;
 
+    /**
+     * [트레이드오프] 비로그인 체험의 AI 호출 비용 통제
+     * 상황 : 가입 전에는 리뷰 품질을 확인할 방법이 없다. 그렇다고 계정 없이 열어두면 AI 호출 비용을 통제할 수 없다.
+     * 대안 : 게스트 사용 이력을 DB 테이블에 쌓는 방식 → 만료된 레코드를 지우는 정리 배치가 별도로 필요하다.
+     * 선택 : guest_token 쿠키로 게스트를 식별하고, Redis 카운터에 첫 요청만 TTL 24h를 건다.
+     *        만료를 직접 지울 필요가 없어 테이블 대신 Redis를 골랐다.
+     * 결과 : 가입 없이 체험을 열면서 게스트 1인당 24시간 3회로 고정, 초과 요청은 403.
+     */
     public GuestReviewResponse createReview(GuestReviewRequest request, String guestToken) {
 
         // "guest:count:토큰" 이름표로 카운터 생성

@@ -21,29 +21,34 @@ import java.util.UUID;
 @Slf4j
 public class BillingProcessor {
 
+    //어떤 사용자의 어떤 구독인지
     private final SubscriptionRepository subscriptionRepository;
+    //결제에 사용할 빌링키,  고객키 조회
     private final PaymentMethodRepository paymentMethodRepository;
+    //구독 요금제의 이름 가격 조회
     private final PlanRepository planRepository;
+    //사용제 요금제 변경, 이메일 주소 조회
     private final UserRepository userRepository;
+    //갱신 취소 등의 구독 변경 이력 저장
     private final SubscriptionHistoryRepository historyRepository;
+    //토스에 HTTP로 결제 승인 요청
     private final TossPaymentClient tossPaymentClient;
+    //사용자에게 결제 안내메일 발송
     private final HtmlMailSender htmlMailSender;
 
     @Transactional
-    public void processOne(Long subId, Long freeId) {
-        //트랜잭션 안에서 다시 조회 → managed 상태 → expire()/extend()/updatePlanId() 더티체킹 반영
+    public void processOne(Long subId, Long freeId) { //구독 한건을 처리하는 메서드
         Subscription sub = subscriptionRepository.findById(subId).orElseThrow();
-
         // 해지 예약 + 기간 만료 → FREE 강등 (CANCEL 이력 남김)
-        if (sub.getCancelledAt() != null) {
-            downgradeToFree(sub, freeId);
+        if (sub.getCancelledAt() != null) { //해지예약시간이 있는지 확인
+            downgradeToFree(sub, freeId); //downgradeToFree 메소드 실행
             return;
         }
 
         // 정기결제
-        Plan plan = planRepository.findById(sub.getPlanId()).orElseThrow();
-        PaymentMethod pm = paymentMethodRepository.findById(sub.getPaymentMethodId()).orElseThrow();
-        String orderId = "SUB-" + sub.getId() + "-" + UUID.randomUUID();
+        Plan plan = planRepository.findById(sub.getPlanId()).orElseThrow(); //어떤 요금제를 결제할지 pro max
+        PaymentMethod pm = paymentMethodRepository.findById(sub.getPaymentMethodId()).orElseThrow(); //어떤 결제 수단으로 결제할지 빌링키등
+        String orderId = "SUB-" + sub.getId() + "-" + UUID.randomUUID(); //결제 요청 구별할 주문번호
 
         tossPaymentClient.confirmBilling(
                 pm.getBillingKey(), pm.getCustomerKey(), plan.getPrice(),
