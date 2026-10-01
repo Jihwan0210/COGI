@@ -45,4 +45,12 @@ public class TossPaymentClient {
                 .body(TossPaymentApproveResponseDTO.class);
     }
 
+    // 주문번호로 결제 결과 조회 (응답 유실 복구용). 토스에 주문이 없으면 404
+    public TossPaymentApproveResponseDTO findByOrderId(String orderId) {
+        return tossRestClient.get()
+                .uri("/v1/payments/orders/{orderId}", orderId)
+                .retrieve()
+                .body(TossPaymentApproveResponseDTO.class);
+    }
+
 }
