@@ -20,6 +20,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 // 정기결제 1건 처리. 토스 호출은 DB 트랜잭션 밖에서 한다:
 //   [트랜잭션 1] 시도 기록(REQUESTED) 커밋 → [밖] 토스 호출 → [트랜잭션 2] 결과 반영
@@ -32,6 +35,16 @@ public class BillingProcessor {
 
     // 이 시간 안에 확정 못 한 시도는 사람이 확인
     static final Duration MANUAL_REVIEW_AFTER = Duration.ofHours(24);
+
+    // 카드 쪽 사유로 확실히 거절된 경우만 FREE 강등 (토스 '카드 자동결제 승인' 에러 코드 기준)
+    // 인증 키 오류·잘못된 요청처럼 우리 쪽 문제는 사용자 책임이 아니므로 강등하지 않는다
+    static final Set<String> CARD_DECLINE_CODES = Set.of(
+            "REJECT_CARD_PAYMENT", "REJECT_ACCOUNT_PAYMENT", "REJECT_CARD_COMPANY",
+            "INVALID_REJECT_CARD", "INVALID_STOPPED_CARD", "INVALID_CARD_LOST_OR_STOLEN",
+            "INVALID_CARD_EXPIRATION", "INVALID_CARD_NUMBER", "NOT_SUPPORTED_CARD_TYPE",
+            "NOT_REGISTERED_CARD_COMPANY", "EXCEED_MAX_AUTH_COUNT", "KYC_BLOCKED");
+    private static final Set<String> DUPLICATE_ORDER_CODES = Set.of("ALREADY_PROCESSED_PAYMENT", "DUPLICATED_ORDER_ID");
+    private static final Pattern ERROR_CODE = Pattern.compile("\"code\"\\s*:\\s*\"([A-Z_]+)\"");
 
     //어떤 사용자의 어떤 구독인지
     private final SubscriptionRepository subscriptionRepository;
@@ -76,8 +89,7 @@ public class BillingProcessor {
         if (attempt.getStatus() != PaymentAttempt.Status.REQUESTED) return;
 
         if (attempt.getCreatedAt().isBefore(LocalDateTime.now().minus(MANUAL_REVIEW_AFTER))) {
-            tx().executeWithoutResult(status ->
-                    attemptRepository.findById(attemptId).ifPresent(PaymentAttempt::manualReview));
+            markManualReview(attemptId);
             log.error("정기결제 장기 미확정 → 수동 확인 필요 orderId={}", attempt.getOrderId());
             return;
         }
@@ -109,14 +121,22 @@ public class BillingProcessor {
                     pm.getBillingKey(), pm.getCustomerKey(), attempt.getAmount(),
                     attempt.getOrderId(), plan.getName() + " 정기결제");
         } catch (HttpClientErrorException e) {
-            if (isDuplicateOrder(e)) {
+            String code = errorCode(e);
+            if (DUPLICATE_ORDER_CODES.contains(code)) {
                 // 같은 주문번호가 이미 처리됨 = 앞선 요청이 승인됐을 수 있음 → 조회로 확정
                 log.warn("정기결제 중복 주문 응답, 복구 조회 대기 orderId={}", attempt.getOrderId());
                 return;
             }
-            // 4xx = 토스가 명확히 거절 (한도 초과 등) → 강등
-            log.warn("정기결제 거절 orderId={}: {}", attempt.getOrderId(), e.getResponseBodyAsString());
-            markFailed(attempt.getId(), freeId);
+            if (CARD_DECLINE_CODES.contains(code)) {
+                // 카드사·잔액 사유로 확실히 거절 → 강등
+                log.warn("정기결제 거절 orderId={} code={}", attempt.getOrderId(), code);
+                markFailed(attempt.getId(), freeId);
+                return;
+            }
+            // 인증 키 오류·잘못된 요청·요청 제한 등 → 같은 요청을 반복해도 해결되지 않으므로 강등 없이 수동 확인
+            log.error("정기결제 요청 오류 → 수동 확인 필요 orderId={} status={} body={}",
+                    attempt.getOrderId(), e.getStatusCode(), e.getResponseBodyAsString());
+            markManualReview(attempt.getId());
             return;
         } catch (Exception e) {
             // 타임아웃/5xx = 승인됐는지 모름 → 강등하지 않고 REQUESTED 유지, 복구 조회로 확정
@@ -157,10 +177,17 @@ public class BillingProcessor {
         return "SUB-" + sub.getId() + "-" + sub.getExpiresAt().format(DateTimeFormatter.BASIC_ISO_DATE);
     }
 
-    // 응답 본문 문자열로 판별. 토스 에러 코드가 바뀌면 여기만 수정
-    private static boolean isDuplicateOrder(HttpClientErrorException e) {
-        String body = e.getResponseBodyAsString();
-        return body.contains("ALREADY_PROCESSED_PAYMENT") || body.contains("DUPLICATED_ORDER_ID");
+    // 토스 에러 응답 {"code": "...", "message": "..."}에서 code만 꺼낸다. 없으면 빈 문자열
+    static String errorCode(HttpClientErrorException e) {
+        Matcher m = ERROR_CODE.matcher(e.getResponseBodyAsString());
+        return m.find() ? m.group(1) : "";
+    }
+
+    // 사람이 토스 콘솔에서 확인할 건. 구독은 강등하지 않고 그대로 둔다
+    private void markManualReview(Long attemptId) {
+        tx().executeWithoutResult(status -> attemptRepository.findById(attemptId)
+                .filter(a -> a.getStatus() == PaymentAttempt.Status.REQUESTED)
+                .ifPresent(PaymentAttempt::manualReview));
     }
 
     private TransactionTemplate tx() {

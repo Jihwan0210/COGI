@@ -15,8 +15,8 @@ public class PaymentAttempt { // 정기결제 1회차 시도 기록 — 토스 �
     public enum Status {
         REQUESTED,     // 토스 결과 미확정 (호출 전/타임아웃/5xx/승인 후 DB 반영 실패) → 복구 스케줄러가 조회로 확정
         DONE,          // 승인 + 구독 연장 완료
-        FAILED,        // 토스가 명확히 거절 → FREE 강등
-        MANUAL_REVIEW  // 오래 확정되지 않음 → 사람이 토스 콘솔에서 확인
+        FAILED,        // 카드 쪽 사유로 명확히 거절 → FREE 강등
+        MANUAL_REVIEW  // 오래 확정되지 않음 또는 우리 쪽 요청 오류 → 사람이 토스 콘솔에서 확인
     }
 
     @Id

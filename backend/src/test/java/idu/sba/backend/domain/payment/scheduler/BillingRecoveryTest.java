@@ -44,13 +44,15 @@ class BillingRecoveryTest {
         NONE,                // 정상 승인
         LOST_AFTER_APPROVE,  // 승인했는데 응답 유실 (돈은 빠짐)
         LOST_BEFORE_APPROVE, // 승인 전에 유실 (돈 안 빠짐)
-        REJECT               // 카드 거절
+        REJECT,              // 카드 거절
+        CLIENT_ERROR         // 우리 쪽 요청 오류 (인증 키 등). 상태·코드는 clientError로 지정
     }
 
     static class FakeToss extends TossPaymentClient {
         final Set<String> approved = new HashSet<>(); // 토스 쪽 승인 장부 = 정답
         final Set<String> seen = new HashSet<>();
         Fault fault = Fault.NONE;
+        HttpClientErrorException clientError;
         int confirmCalls, lookupCalls;
 
         FakeToss() { super(null); }
@@ -62,7 +64,8 @@ class BillingRecoveryTest {
             if (approved.contains(orderId)) throw error(HttpStatus.BAD_REQUEST, "ALREADY_PROCESSED_PAYMENT"); // 같은 주문 중복 승인 차단
             boolean first = seen.add(orderId); // 장애는 주문별 첫 호출에만 발생
             switch (fault) {
-                case REJECT -> throw error(HttpStatus.BAD_REQUEST, "REJECT_CARD_PAYMENT");
+                case REJECT -> throw error(HttpStatus.FORBIDDEN, "REJECT_CARD_PAYMENT");
+                case CLIENT_ERROR -> throw clientError;
                 case LOST_BEFORE_APPROVE -> {
                     if (first) throw new ResourceAccessException("Read timed out");
                 }
@@ -209,6 +212,33 @@ class BillingRecoveryTest {
         assertThat(onlyAttempt().getStatus()).isEqualTo(PaymentAttempt.Status.FAILED);
         assertThat(subs.get(1L).getStatus()).isEqualTo(SubscriptionStatus.CANCELLED);
         assertThat(users.get(1L).getPlanId()).isEqualTo(FREE_ID);
+    }
+
+    @Test
+    void authKeyError_notDowngraded_manualReview() {
+        givenDueSubscriptions(1);
+        toss.fault = Fault.CLIENT_ERROR;
+        toss.clientError = FakeToss.error(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED_KEY");
+
+        scheduler.runBilling();
+        scheduler.runBilling(); // 다음 날 배치가 또 돌아도 재청구·강등 없음
+
+        assertThat(onlyAttempt().getStatus()).isEqualTo(PaymentAttempt.Status.MANUAL_REVIEW);
+        assertThat(subs.get(1L).getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(users.get(1L).getPlanId()).isEqualTo(PRO_ID);
+        assertThat(toss.confirmCalls).isEqualTo(1);
+    }
+
+    @Test
+    void unknownClientError_notDowngraded() {
+        givenDueSubscriptions(1);
+        toss.fault = Fault.CLIENT_ERROR;
+        toss.clientError = FakeToss.error(HttpStatus.TOO_MANY_REQUESTS, "TOO_MANY_REQUESTS");
+
+        scheduler.runBilling();
+
+        assertThat(onlyAttempt().getStatus()).isEqualTo(PaymentAttempt.Status.MANUAL_REVIEW);
+        assertThat(users.get(1L).getPlanId()).isEqualTo(PRO_ID);
     }
 
     @Test
