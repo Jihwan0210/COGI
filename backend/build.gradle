@@ -57,4 +57,16 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    testLogging {
+        showStandardStreams = true
+    }
+}
+
+tasks.register('guestQuotaLoadServer', JavaExec) {
+    group = 'verification'
+    description = 'Start the isolated guest-quota HTTP server for local k6 tests.'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'idu.sba.backend.domain.guest.service.GuestQuotaLoadServer'
+    args providers.gradleProperty('quotaBackend').getOrElse('redis'),
+         providers.gradleProperty('quotaPort').getOrElse('18080')
 }
