@@ -26,16 +26,4 @@ public class AsyncConfig {
         return executor;
     }
 
-    // 전체 공지 메일 발송 전용 — PR 리뷰 큐와 분리해 서로 굶기지 않게 한다.
-    @Bean(name = "mailExecutor")
-    public Executor mailExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(1);
-        executor.setMaxPoolSize(2);
-        executor.setQueueCapacity(20);
-        executor.setThreadNamePrefix("notice-mail-");
-        executor.initialize();
-        return executor;
-    }
-
 }
