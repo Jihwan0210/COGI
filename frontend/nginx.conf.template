@@ -1,3 +1,9 @@
+# 앞단 HTTPS 프록시(Caddy)가 넘긴 원래 프로토콜을 유지한다. 없으면 이 서버 기준
+map $http_x_forwarded_proto $forwarded_proto {
+    default $http_x_forwarded_proto;
+    ''      $scheme;
+}
+
 server {
     listen 80;
     root /usr/share/nginx/html;
@@ -8,7 +14,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_read_timeout 300s;
     }
 

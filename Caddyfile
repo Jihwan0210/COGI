@@ -1,0 +1,15 @@
+# 운영 서버 HTTPS. Let's Encrypt 인증서 발급과 갱신, http -> https 전환을 Caddy가 처리한다.
+# API와 OAuth 요청은 백엔드로 바로 보내 https 정보(X-Forwarded-Proto)가 그대로 전달되게 한다.
+{$DOMAIN} {
+	@backend path /api/* /oauth2/* /login/oauth2/*
+	handle @backend {
+		reverse_proxy backend:8080
+	}
+	handle {
+		reverse_proxy frontend:80
+	}
+}
+
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}

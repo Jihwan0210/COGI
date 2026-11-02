@@ -53,10 +53,28 @@ services:
     environment:
       BACKEND_HOST: backend:8080
     ports:
-      # 로컬은 8088, 서버는 .env에서 WEB_PORT=80
+      # 로컬은 8088. 서버는 앞에 caddy가 있으므로 .env에서 WEB_PORT=127.0.0.1:8088
       - "${WEB_PORT:-8088}:80"
     depends_on:
       - backend
 
+  # 운영 서버 전용 HTTPS 프록시. .env에 COMPOSE_PROFILES=https, DOMAIN=도메인을 넣으면 함께 뜬다
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - frontend
+
 volumes:
   db-data:
+  caddy-data:
