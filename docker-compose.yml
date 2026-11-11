@@ -1,0 +1,80 @@
+# 로컬 테스트 / 단일 서버(EC2) 운영용. 시크릿은 같은 폴더의 .env에서 읽는다.
+# 로그 파일이 디스크를 채우지 않도록 컨테이너마다 크기를 제한한다
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  mariadb:
+    image: mariadb:11.4
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      MARIADB_DATABASE: cogi
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Seoul
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    logging: *logging
+
+  backend:
+    image: ${BACKEND_IMAGE:-cogi-backend}
+    build: ./backend
+    restart: unless-stopped
+    logging: *logging
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/cogi?characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-cogi-frontend}
+    build: ./frontend
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      BACKEND_HOST: backend:8080
+    ports:
+      # 로컬은 8088. 서버는 앞에 caddy가 있으므로 .env에서 WEB_PORT=127.0.0.1:8088
+      - "${WEB_PORT:-8088}:80"
+    depends_on:
+      - backend
+
+  # 운영 서버 전용 HTTPS 프록시. .env에 COMPOSE_PROFILES=https, DOMAIN=도메인을 넣으면 함께 뜬다
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - frontend
+
+volumes:
+  db-data:
+  caddy-data:

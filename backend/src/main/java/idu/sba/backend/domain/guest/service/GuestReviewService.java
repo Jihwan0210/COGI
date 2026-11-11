@@ -38,7 +38,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class GuestReviewService {
 
-    // Redis 리모컨 (카운트·저장에 사용)
+    // 게스트 리뷰 결과 저장·조회에 사용 (횟수 관리는 GuestQuotaStore 담당)
     private final StringRedisTemplate redisTemplate;
 
     // 객체 , JSON 문자열 변환기 (Redis에 문자열로 저장하려고 사용)
@@ -55,13 +55,13 @@ public class GuestReviewService {
     private final PromptBuilder promptBuilder;
 
     // 비로그인 체험 제한 횟수(3회). 한 곳에서만 관리하려고 상수로.
-    private static final int TRIAL_LIMIT = 3;
+    private static final int TRIAL_LIMIT = GuestQuotaStore.TRIAL_LIMIT;
 
     // 게스트 체험 모델 — 앞이 우선, 실패(rate limit/장애) 시 다음으로 폴백.
     // 실제로 성공한 모델을 usage 로그·claim 시 reviews.model_name 에 남긴다.
     private static final List<AiModel> GUEST_MODELS = List.of(AiModel.GEMINI_FLASH, AiModel.GROQ_LLAMA_70B);
 
-    // 체험 횟수 유지 창. 첫 리뷰 시점부터 24시간 뒤 카운터가 만료돼 3회가 리셋된다.
+    // 리뷰 결과 보관 기간. 체험 횟수의 만료 정책은 GuestQuotaStore에서 관리한다.
     private static final Duration TRIAL_WINDOW = Duration.ofHours(24);
 
     // 게스트는 항상 무료 등급 — prompt_plan_free.txt 를 쓴다.
@@ -71,43 +71,23 @@ public class GuestReviewService {
     //Admin관리자 창에서 Ai사용량을 표기해야
     private final AiUsageLogRepository aiUsageLogRepository;
 
-    /**
-     * [트레이드오프] 비로그인 체험의 AI 호출 비용 통제
-     * 상황 : 가입 전에는 리뷰 품질을 확인할 방법이 없다. 그렇다고 계정 없이 열어두면 AI 호출 비용을 통제할 수 없다.
-     * 대안 : 게스트 사용 이력을 DB 테이블에 쌓는 방식 → 만료된 레코드를 지우는 정리 배치가 별도로 필요하다.
-     * 선택 : guest_token 쿠키로 게스트를 식별하고, Redis 카운터에 첫 요청만 TTL 24h를 건다.
-     *        만료를 직접 지울 필요가 없어 테이블 대신 Redis를 골랐다.
-     * 결과 : 가입 없이 체험을 열면서 게스트 1인당 24시간 3회로 고정, 초과 요청은 403.
-     */
+
+    // 게스트 체험 횟수 확보,반환
+    private final GuestQuotaStore guestQuotaStore;
+    // 토큰별 체험 횟수는 선택된 저장소에서 관리한다.
     public GuestReviewResponse createReview(GuestReviewRequest request, String guestToken) {
 
-        // "guest:count:토큰" 이름표로 카운터 생성
-        String countKey = "guest:count:" + guestToken;
-
-        // 카운터는 Redis에 의존한다(단일 인스턴스 = SPOF). Redis 장애 시 횟수를 셀 수 없으므로,
-        // 무제한 호출로 비용이 새는 것을 막기 위해 fail-closed로 체험만 차단한다(503). 나머지 서비스는 계속 동작.
-        // 근본 해결은 Redis Sentinel/replica로 HA 구성 — 확장 여지로 남겨둔다.
-        long current;
+        // 횟수 저장소 장애 시 횟수를 셀 수 없으므로, 무제한 호출로 비용이 새는 것을 막기 위해
+        // fail-closed로 체험만 차단한다(503). 나머지 서비스는 계속 동작.
+        // 반환할 때도 이 기간 정보를 사용한다.
+        GuestQuotaStore.Reservation reservation;
         try {
-            // increment: 값을 1 올리고 "올린 뒤 현재값"을 반환.
-            Long count = redisTemplate.opsForValue().increment(countKey);
-            // increment는 이론상 null 가능 → 방어. null이면 1로 취급.
-            current = (count == null) ? 1L : count;
-
-            // 첫 리뷰(값 1)일 때만 24시간 수명 설정. 이후엔 갱신하지 않으므로
-            // 첫 리뷰 시점부터 정확히 24시간 뒤에 카운터가 만료되고 3회가 리셋된다.
-            if (current == 1L) {
-                redisTemplate.expire(countKey, TRIAL_WINDOW);
-            }
+            reservation = guestQuotaStore.tryAcquire(guestToken)
+                    .orElseThrow(() -> new TrialLimitExceededException(
+                            "무료 체험 " + TRIAL_LIMIT + "회를 모두 사용했습니다."));
         } catch (DataAccessException e) {
             throw new BusinessException(ErrorCode.GUEST_TRIAL_UNAVAILABLE);
         }
-
-        // 3회 초과(4번째부터)예외처리 Controller가 이걸 403으로 바꿈
-        if (current > TRIAL_LIMIT) {
-            throw new TrialLimitExceededException("무료 체험 " + TRIAL_LIMIT + "회를 모두 사용했습니다.");
-        }
-
 
         Level level = parseLevel(request.getLevel());
         String systemPrompt = promptBuilder.build(level, GUEST_PLAN);
@@ -133,9 +113,9 @@ public class GuestReviewService {
         // 모든 모델 실패 — 방금 올린 체험 횟수를 롤백하고 마지막 에러(AI_MODEL_CALL_FAILED)를 재던져 502로 통일 응답
         // (예전처럼 500 RuntimeException으로 뭉개지 않음)
         if (result == null) {
-            // 카운터 롤백. Redis가 방금 죽었더라도 원래 에러(lastError)를 가리지 않도록 무시.
+            // 횟수 반환. 저장소가 방금 죽었더라도 원래 에러(lastError)를 가리지 않도록 무시.
             try {
-                redisTemplate.opsForValue().decrement(countKey);
+                guestQuotaStore.refund(reservation);
             } catch (DataAccessException ignore) {
             }
             throw lastError;
@@ -234,5 +214,7 @@ public class GuestReviewService {
             super(message);
         }
     }
+
+
 
 }

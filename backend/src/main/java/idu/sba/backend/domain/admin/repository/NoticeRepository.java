@@ -11,6 +11,5 @@ public interface NoticeRepository extends JpaRepository<Notice, Long> {
     // 관리자 공지 이력 — 최신순 (목록 표시용)
     List<Notice> findAllByOrderByCreatedAtDesc();
 
-    // 사용자 공지 조회 — 발송 완료된 것만, 최신순
-    List<Notice> findByStatusOrderByCreatedAtDesc(NoticeStatus status);
+    List<Notice> findByStatusAndUrgentTrue(NoticeStatus status);
 }

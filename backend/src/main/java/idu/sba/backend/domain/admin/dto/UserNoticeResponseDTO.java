@@ -9,6 +9,7 @@ public record UserNoticeResponseDTO(
         Long id, String subject, String content, LocalDateTime sentAt, boolean urgent
 ) {
     public static UserNoticeResponseDTO of(Notice n) {
-        return new UserNoticeResponseDTO(n.getId(), n.getSubject(), n.getContent(), n.getSentAt(), n.isUrgent());
+        return new UserNoticeResponseDTO(n.getId(), n.getSubject(), n.getContent(),
+                n.getSentAt() != null ? n.getSentAt() : n.getCreatedAt(), n.isUrgent());
     }
 }

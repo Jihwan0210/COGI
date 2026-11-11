@@ -3,3 +3,7 @@
 .idea/
 .omc/
 docs/
+
+# docker 배포 시크릿
+.env
+.env.prod
